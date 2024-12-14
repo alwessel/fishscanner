@@ -206,15 +206,23 @@ def create_key_processor(
         scanned_fish_queue: Queue,
 ) -> Callable:
     """
-    Wrapper for keys processor function
-    :param scanner: Object of scanner to process photos
-    :param scanned_fish_queue: Queue with scanning results
-    :return: Function in the format for the GLUT
+    Create function to process keyboard events
+    :param scanner: Scanner object
+    :param scanned_fish_queue: Queue to store scanned fish
+    :return:
     """
-    def keys_processor(key, x, y):
+
+    def process_key(key: bytes, *_):
+        """
+        Process keyboard events
+        :param key: Pressed key
+        :param _: Other parameters
+        :return:
+        """
         if key == b'\x1b':  # esc
-            exit(0)
-    return keys_processor
+            os._exit(0)
+
+    return process_key
 
 
 def create_animation_function(
