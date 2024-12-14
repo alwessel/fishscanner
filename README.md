@@ -2,7 +2,7 @@
 
 A magical application that brings your fish drawings to life in a virtual ocean! Draw a fish on paper, scan it, and watch it swim around with other fish in a beautiful underwater world. 
 
-This project is based on the wonderful work by [David Svitov](https://github.com/david-svitov/fishscanner), who created the original FishScanner. This version extends his creative vision to add support for HEIC images (from iPhones), improve background detection, and make the experience even more delightful.
+This project is based on the wonderful work by [David Svitov](https://github.com/david-svitov/fishscanner), who created the original FishScanner. This version extends his creative vision to add support for HEIC images (from iPhones), live updates so you improve background detection, and make the experience even more delightful.
 
 > Forked from [david-svitov/fishscanner](https://github.com/david-svitov/fishscanner)
 
@@ -15,6 +15,7 @@ This project is based on the wonderful work by [David Svitov](https://github.com
 > - **📱 Apple Silicon Support**: Native support for M1/M2 Macs
 > - **🎮 Better Graphics**: Enhanced OpenGL integration and rendering
 > - **🔄 Modern Stack**: Updated to Python 3.11 and latest OpenCV
+> - **🪄 Live Updates**: Fish appear instantly when you add photos - no restart needed!
 > - **🛠 Improved Reliability**: Better error handling and troubleshooting
 >
 > [See full changelog](#2024-changes)
@@ -46,6 +47,7 @@ cd fishscanner
 3. Add your fish
    - Take a photo of your drawing and save it to the `photos` folder
    - Supported formats: JPG and HEIC (iPhone photos)
+   - The fish will appear automatically in the ocean!
    - Run the app: `./run.sh`
 
 ## 2024 Changes
@@ -57,6 +59,10 @@ cd fishscanner
   - Enhanced OpenGL integration with proper GLUT initialization
   - Fixed vertex array handling for better hardware support
 - **Apple Silicon Support**: Added compatibility for M1/M2 Macs
+- **Live File Watching**: 
+  - Fish appear instantly when you add photos to the folder
+  - No need to restart the app when adding new fish
+  - Uses efficient filesystem events for minimal system impact
 - **Improved Error Handling**: Better error messages and troubleshooting guides
 
 ### Technical Improvements
@@ -65,6 +71,7 @@ cd fishscanner
 - Improved state management in rendering pipeline
 - Enhanced graphics performance and stability
 - Added comprehensive troubleshooting documentation
+- Efficient file system monitoring using native events
 
 ## Troubleshooting
 
