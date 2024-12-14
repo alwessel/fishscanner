@@ -39,6 +39,7 @@ cd fishscanner
 
 3. Add your fish
    - Take a photo of your drawing and save it to the `photos` folder
+   - Supported formats: JPG and HEIC (iPhone photos)
    - Run the app: `./run.sh`
 
 ## 2024 Changes
