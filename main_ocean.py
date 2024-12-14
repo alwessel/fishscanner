@@ -130,7 +130,7 @@ def scan_from_frame(
         scanner: SimpleScanner,
 ) -> Optional[np.ndarray]:
     """
-    Scan a fish from a frame
+    Process a fish from an image file
     :param frame: BGR photo of the fish drawing
     :param scanner: Object of scanner to process photo
     :return: Processed frame with a fish selected from the background
@@ -143,31 +143,6 @@ def scan_from_frame(
         return None
     processed_frame = scanner.remove_background(processed_frame)
     return processed_frame
-
-
-def scan_fish(
-        scanner: SimpleScanner,
-        scanned_fish: Queue,
-        camera_id: int = 1,
-) -> None:
-    """
-    Capture frame from input device with index 0 and scan fish from it
-    :param scanner: Object of scanner to process photo
-    :param scanned_fish: Queue with scanned fish
-    :param camera_id: Id of the camera to capture a frame
-    :return:
-    """
-    camera = cv2.VideoCapture(camera_id)
-    if not camera.isOpened():
-        raise EnvironmentError('Can not connect to the camera')
-    ret, frame = camera.read()
-    if ret is False:
-        raise IOError('Error reading frame from the camera')
-
-    processed_frame = scan_from_frame(frame, scanner)
-    camera.release()
-    if processed_frame is not None:
-        scanned_fish.put(processed_frame)
 
 
 def load_fish_from_files(
@@ -212,9 +187,6 @@ def create_key_processor(
     def keys_processor(key, x, y):
         if key == b'\x1b':  # esc
             exit(0)
-        if key == b'\r':  # enter
-            thread = Thread(target=scan_fish, args=(scanner, scanned_fish_queue))
-            thread.start()
     return keys_processor
 
 

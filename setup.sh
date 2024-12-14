@@ -137,6 +137,4 @@ echo """
 To run FishScanner:
 1. Log out and log back in (required for XQuartz)
 2. Run: ./run.sh
-
-Note: You'll need to grant camera permissions when first running the app.
 """
