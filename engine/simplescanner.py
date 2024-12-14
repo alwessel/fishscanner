@@ -11,8 +11,9 @@ class SimpleScanner:
         """
         Initialize AR markers detector
         """
-        self._aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
-        self._aruco_params = cv2.aruco.DetectorParameters_create()
+        self._aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        self._aruco_params = cv2.aruco.DetectorParameters()
+        self._aruco_detector = cv2.aruco.ArucoDetector(self._aruco_dict, self._aruco_params)
 
         self._marker_top_left_id = 3
         self._marker_top_right_id = 1
@@ -32,8 +33,7 @@ class SimpleScanner:
         :param frame: Photo of a fish from an opencv image
         :return: Aligned image of a fish
         """
-        corners, ids, rejected = cv2.aruco.detectMarkers(frame, self._aruco_dict,
-                                                         parameters=self._aruco_params)
+        corners, ids, rejected = self._aruco_detector.detectMarkers(frame)
 
         top_left, top_right, bottom_right, bottom_left = None, None, None, None
 

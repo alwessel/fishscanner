@@ -51,18 +51,15 @@ class Drawing:
         self._vbo_vertices = glvbo.VBO(np.array(vertices, 'f'))
         self._vbo_texcoords = glvbo.VBO(np.array(vertices, 'f') + 0.5)
 
-        self._vao = gl.glGenVertexArrays(1)
-        gl.glBindVertexArray(self._vao)
-
+        # Use compatibility profile for older OpenGL support
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
         gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
 
         self._vbo_vertices.bind()
         gl.glVertexPointer(3, gl.GL_FLOAT, 0, None)
+
         self._vbo_texcoords.bind()
         gl.glTexCoordPointer(3, gl.GL_FLOAT, 0, None)
-
-        gl.glBindVertexArray(0)
 
     def _apply_transforms(self) -> None:
         """
@@ -82,9 +79,15 @@ class Drawing:
         """
         gl.glPushMatrix()
         self._apply_transforms()
-        gl.glBindVertexArray(self._vao)
+        gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
+        gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
+        self._vbo_vertices.bind()
+        gl.glVertexPointer(3, gl.GL_FLOAT, 0, None)
+        self._vbo_texcoords.bind()
+        gl.glTexCoordPointer(3, gl.GL_FLOAT, 0, None)
         gl.glDrawArrays(gl.GL_TRIANGLES, 0, self._vertices_count)
-        gl.glBindVertexArray(0)
+        gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
+        gl.glDisableClientState(gl.GL_TEXTURE_COORD_ARRAY)
         gl.glPopMatrix()
 
     def render(self) -> None:

@@ -265,28 +265,57 @@ def create_animation_function(
 
 
 def main():
+    # Initialize GLUT
+    glut.glutInit()
+    glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGB | glut.GLUT_DEPTH)
+    
+    # Request OpenGL 3.3 core profile
+    glut.glutInitContextVersion(3, 3)
+    glut.glutInitContextProfile(glut.GLUT_CORE_PROFILE)
+    
+    glut.glutInitWindowSize(800, 600)
+    glut.glutCreateWindow(b"FishScanner")
+    
+    # Initialize OpenGL
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_BLEND)
+    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+
+    # Initialize OpenGL context
+    gl.glClearColor(0.1, 0.1, 0.2, 1.0)
+    gl.glViewport(0, 0, 800, 600)
+    gl.glMatrixMode(gl.GL_PROJECTION)
+    gl.glLoadIdentity()
+    gl.glOrtho(-1, 1, -1, 1, -1, 1)
+    gl.glMatrixMode(gl.GL_MODELVIEW)
+    gl.glLoadIdentity()
+    
     scanner = SimpleScanner()
 
-    gl.glClearColor(0.1, 0.1, 0.2, 1.0)
     timer_msec = int(1000 / 60) # 60 times per second
     renderer = Renderer()
     drawings_list = []
     fish_queue = Queue() # Queue to maintain order of the fish and kill the oldest ones
     fish_limit = 10 # Maximum amount of fish to draw
     scanned_fish_queue = Queue()
+    
+    # Create display function first
+    glut.glutDisplayFunc(partial(renderer.render, drawings_list))
+    
+    # Then initialize the scene
     draw_ocean(drawings_list)
 
     fish_shader_program = Renderer.create_shader(gl.GL_VERTEX_SHADER, FISH_SHADER_CODE)
     bubble_texture = Renderer.create_texture_from_file('ocean/images/bubble.png')
     load_fish_from_files(scanner, drawings_list, fish_queue, fish_shader_program, bubble_texture)
 
-    glut.glutDisplayFunc(partial(renderer.render, drawings_list))
     glut.glutIgnoreKeyRepeat(True)
     glut.glutKeyboardFunc(create_key_processor(scanner, scanned_fish_queue))
     glut.glutTimerFunc(timer_msec, create_animation_function(renderer, drawings_list, scanned_fish_queue,
                                                              fish_queue, fish_limit, timer_msec,
                                                              fish_shader_program, bubble_texture), 0)
 
+    # Start the main loop
     glut.glutMainLoop()
 
 

@@ -17,24 +17,20 @@ class Renderer:
 
     def __init__(self):
         """
-        Initialize and create GLUT window
+        Initialize OpenGL state
         """
-        glut.glutInit(sys.argv)
-        glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGBA | glut.GLUT_DEPTH)
-        glut.glutCreateWindow("OpenGL")
-        glut.glutFullScreen()
-
         gl.glEnable(gl.GL_TEXTURE_2D)
         gl.glDisable(gl.GL_LIGHTING)
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
 
-        # Modify matrices for screen size
-        width = glut.glutGet(glut.GLUT_SCREEN_WIDTH)
-        height = glut.glutGet(glut.GLUT_SCREEN_HEIGHT)
+        # Get current window dimensions
+        width = glut.glutGet(glut.GLUT_WINDOW_WIDTH)
+        height = glut.glutGet(glut.GLUT_WINDOW_HEIGHT)
         gl.glViewport(0, 0, width, height)
         gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
         aspect = width / height
         gl.glOrtho(-aspect, aspect, 1, -1, -1, 1)
 
