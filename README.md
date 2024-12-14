@@ -37,7 +37,7 @@ cd fishscanner
    - Keep your drawing inside the marked area
    - Make sure the corner markers stay visible
 
-3. Scan and run
+3. Add your fish
    - Take a photo of your drawing and save it to the `photos` folder
    - Run the app: `./run.sh`
 
@@ -70,10 +70,6 @@ Having issues? Check these common solutions:
 2. **App doesn't start**
    - Make sure you logged out and back in after installation
    - Try running `open -a XQuartz` manually
-
-3. **Camera issues**
-   - Grant camera permissions to Terminal/IDE
-   - Try a different camera ID in the code
 
 For detailed solutions to these and other issues, see our [Troubleshooting Guide](TROUBLESHOOTING.md).
 

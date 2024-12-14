@@ -25,16 +25,6 @@ check_opengl() {
     python3 -c "import OpenGL.GL" 2>/dev/null
 }
 
-# Function to check camera permissions (on macOS)
-check_camera_permissions() {
-    if ! python3 -c "import cv2; cap = cv2.VideoCapture(0)" 2>/dev/null; then
-        echo "⚠️  Camera access may be required"
-        echo "Please grant camera permissions in System Settings → Privacy & Security → Camera"
-        echo "Then try running this script again"
-        exit 1
-    fi
-}
-
 echo "🐠 Starting FishScanner..."
 
 # Check if we're in the right directory
@@ -103,16 +93,12 @@ fi
 # Set display for OpenGL
 export DISPLAY=:0
 
-# Check camera permissions
-check_camera_permissions
-
 # Run the application
 echo "Starting FishScanner application..."
 python3 main_ocean.py || {
     echo "⚠️  Application crashed"
     echo "Please check:"
-    echo "1. Camera permissions"
-    echo "2. XQuartz is running"
-    echo "3. The error message above"
+    echo "1. XQuartz is running"
+    echo "2. The error message above"
     exit 1
 }
