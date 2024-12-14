@@ -3,11 +3,14 @@ from glob import glob
 from queue import Queue
 from threading import Thread
 from typing import List, Optional, Callable
+import os
 
 import OpenGL.GL as gl
 import OpenGL.GLUT as glut
 import cv2
 import numpy as np
+from pillow_heif import register_heif_opener
+from PIL import Image
 
 from engine.drawing import Drawing
 from engine.renderer import Renderer
@@ -15,6 +18,9 @@ from engine.simplescanner import SimpleScanner
 from ocean.drawingfish import DrawingFish, FISH_SHADER_CODE
 from ocean.drawingseaweed import DrawingSeaweed, SEAWEED_SHADER_CODE
 from ocean.drawingstatic import DrawingStatic
+
+# Register HEIF opener for HEIC support
+register_heif_opener()
 
 
 def create_back_layer(
@@ -161,17 +167,38 @@ def load_fish_from_files(
     :param bubble_texture: ID of bubble texture
     :return:
     """
-    files = glob('./photos/*.jpg')
+    # Load both JPG and HEIC files
+    jpg_files = glob('./photos/*.jpg')
+    heic_files = glob('./photos/*.heic')
+    files = jpg_files + heic_files
+
     for filename in files:
-        frame = cv2.imread(filename)
-        if frame is None:
-            raise ValueError(f'Error reading image with filename: {filename}')
-        scanned_fish = scan_from_frame(frame, scanner)
-        drawing = DrawingFish(Renderer.create_texture(scanned_fish),
-                              shader=fish_shader_program,
-                              bubble_texture_id=bubble_texture)
-        drawings_list.append(drawing)
-        fish_queue.put(drawing)
+        try:
+            if filename.lower().endswith('.heic'):
+                # Load HEIC files using pillow-heif
+                heif_file = Image.open(filename)
+                # Convert to RGB format that OpenCV expects
+                rgb_image = heif_file.convert('RGB')
+                # Convert PIL image to OpenCV format
+                frame = cv2.cvtColor(np.array(rgb_image), cv2.COLOR_RGB2BGR)
+            else:
+                # Load JPG files using OpenCV directly
+                frame = cv2.imread(filename)
+
+            if frame is None:
+                print(f'Error reading image with filename: {filename}')
+                continue
+
+            scanned_fish = scan_from_frame(frame, scanner)
+            if scanned_fish is not None:
+                drawing = DrawingFish(Renderer.create_texture(scanned_fish),
+                                    shader=fish_shader_program,
+                                    bubble_texture_id=bubble_texture)
+                drawings_list.append(drawing)
+                fish_queue.put(drawing)
+        except Exception as e:
+            print(f'Error processing {filename}: {str(e)}')
+            continue
 
 
 def create_key_processor(
