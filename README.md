@@ -1,5 +1,11 @@
 # FishScanner
 
+A magical application that brings your fish drawings to life in a virtual ocean! Draw a fish on paper, scan it, and watch it swim around with other fish in a beautiful underwater world. 
+
+This project is based on the wonderful work by [David Svitov](https://github.com/david-svitov/fishscanner), who created the original FishScanner. We've built upon his creative vision to add support for HEIC images, improve background detection, and make the experience even more delightful.
+
+> Forked from [david-svitov/fishscanner](https://github.com/david-svitov/fishscanner)
+
 ![Run example](./images/img1.png)
 
 > **🎉 2024 Update: Major Improvements!**
