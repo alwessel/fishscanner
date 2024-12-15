@@ -493,11 +493,6 @@ def main():
             'name': 'Scene 3',
             'background': 'ocean/images/scene3.webp'
         },
-        {
-            'type': 'simple',
-            'name': 'Scene 4',
-            'background': 'ocean/images/scene4.png'
-        }
     ]
     current_scene_index = [0]
     
