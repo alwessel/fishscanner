@@ -4,6 +4,7 @@ from queue import Queue
 from threading import Thread
 from typing import List, Optional, Callable
 import os
+import sys
 import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
@@ -77,61 +78,70 @@ def draw_ocean(drawings_list: List[Drawing]) -> None:
     :return:
     """
     seaweed_shader_program = Renderer.create_shader(gl.GL_VERTEX_SHADER, SEAWEED_SHADER_CODE)
+    cleanup_and_exit.seaweed_shader = seaweed_shader_program
+    cleanup_and_exit.seaweed_textures = []
+    cleanup_and_exit.background_textures = []
 
-    drawings_list.append(create_back_layer('ocean/images/back_down.png', -0.8))
-    drawings_list.append(create_back_layer('ocean/images/back_middle.png', -0.78))
-    drawings_list.append(create_back_layer('ocean/images/back_reef.png', 0.8))
+    # Create and store background textures
+    for image in ['back_down.png', 'back_middle.png', 'back_reef.png']:
+        texture = Renderer.create_texture_from_file(f'ocean/images/{image}')
+        cleanup_and_exit.background_textures.append(texture)
+        drawings_list.append(create_back_layer(f'ocean/images/{image}', -0.8))
 
     draw_sails(drawings_list, seaweed_shader_program)
 
-    seaweed_texture = Renderer.create_texture_from_file('ocean/images/seaweed_2.png')
-    # Draw seaweed under the ship
-    drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
-    drawing.position = np.array([1.2, 0.4, -0.75])
-    drawing.scale = np.array([0.8, 0.4, 1.0])
-    drawings_list.append(drawing)
+    # Create and store seaweed textures
+    seaweed_images = ['seaweed_2.png', 'seaweed_1.png', 'seaweed_3.png']
+    for image in seaweed_images:
+        texture = Renderer.create_texture_from_file(f'ocean/images/{image}')
+        cleanup_and_exit.seaweed_textures.append(texture)
+        
+        seaweed_texture = texture
+        # Draw seaweed under the ship
+        drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
+        drawing.position = np.array([1.2, 0.4, -0.75])
+        drawing.scale = np.array([0.8, 0.4, 1.0])
+        drawings_list.append(drawing)
 
-    seaweed_texture = Renderer.create_texture_from_file('ocean/images/seaweed_1.png')
-    # Draw seaweed in the right corner
-    drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
-    drawing.position = np.array([1.2, 1.0, 0.9])
-    drawing.scale = np.array([0.8, 1.4, 1.0])
-    # drawing.color = np.array([0.5, 0.5, 1.0])
-    drawings_list.append(drawing)
+        seaweed_texture = texture
+        # Draw seaweed in the right corner
+        drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
+        drawing.position = np.array([1.2, 1.0, 0.9])
+        drawing.scale = np.array([0.8, 1.4, 1.0])
+        # drawing.color = np.array([0.5, 0.5, 1.0])
+        drawings_list.append(drawing)
 
-    # Draw seaweed in the front of the rock
-    drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
-    drawing.position = np.array([0.2, 0.15, -0.7])
-    drawing.scale = np.array([0.4, 0.4, 1.0])
-    # drawing.color = np.array([0.6, 0.6, 1.0])
-    drawings_list.append(drawing)
+        # Draw seaweed in the front of the rock
+        drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
+        drawing.position = np.array([0.2, 0.15, -0.7])
+        drawing.scale = np.array([0.4, 0.4, 1.0])
+        # drawing.color = np.array([0.6, 0.6, 1.0])
+        drawings_list.append(drawing)
 
-    seaweed_texture = Renderer.create_texture_from_file('ocean/images/seaweed_3.png')
-    # Draw seaweed in the left corner
-    drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
-    drawing.position = np.array([-1.2, 0.6, 0.9])
-    drawing.scale = np.array([0.3, 1.0, 1.0])
-    # drawing.color = np.array([0.5, 0.5, 1.0])
-    drawings_list.append(drawing)
+        seaweed_texture = texture
+        # Draw seaweed in the left corner
+        drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
+        drawing.position = np.array([-1.2, 0.6, 0.9])
+        drawing.scale = np.array([0.3, 1.0, 1.0])
+        # drawing.color = np.array([0.5, 0.5, 1.0])
+        drawings_list.append(drawing)
 
-    # Draw seaweed on the background
-    drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
-    drawing.position = np.array([-0.8, -0.5, -0.795])
-    drawing.scale = np.array([0.3, 1.0, 1.0])
-    drawing.color = np.array([0.3, 0.3, 0.8])
-    drawings_list.append(drawing)
+        # Draw seaweed on the background
+        drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
+        drawing.position = np.array([-0.8, -0.8, -0.795])  
+        drawing.scale = np.array([0.3, 1.2, 1.0])  
+        drawing.color = np.array([0.3, 0.3, 0.8])
+        drawings_list.append(drawing)
 
-    drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
-    drawing.position = np.array([0.0, -0.2, -0.795])
-    drawing.scale = np.array([-0.3, 1.0, 1.0])
-    drawing.color = np.array([0.3, 0.3, 0.8])
-    drawings_list.append(drawing)
+        drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
+        drawing.position = np.array([0.0, -0.2, -0.795])
+        drawing.scale = np.array([-0.3, 1.0, 1.0])
+        drawings_list.append(drawing)
 
-    drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
-    drawing.position = np.array([-0.4, -0.2, -0.795])
-    drawing.scale = np.array([0.1, 0.3, 1.0])
-    drawing.color = np.array([0.1, 0.1, 0.4])
-    drawings_list.append(drawing)
+        drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
+        drawing.position = np.array([-0.4, -0.2, -0.795])
+        drawing.scale = np.array([0.1, 0.3, 1.0])
+        drawings_list.append(drawing)
 
 
 def scan_from_frame(
@@ -259,12 +269,60 @@ def watch_photos_directory(
     observer.schedule(event_handler, path='./photos', recursive=False)
     observer.start()
     
+    # Store observer in cleanup function for access during exit
+    cleanup_and_exit.observer = observer
+    
     try:
         while True:
             time.sleep(1)  # Keep thread alive
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
+
+
+def cleanup_and_exit():
+    """
+    Cleanup function to be called before program exit
+    """
+    # Stop the observer thread
+    if hasattr(cleanup_and_exit, 'observer'):
+        cleanup_and_exit.observer.stop()
+        cleanup_and_exit.observer.join()
+    
+    # Clean up OpenGL resources
+    # Delete shaders
+    if hasattr(cleanup_and_exit, 'fish_shader'):
+        gl.glDeleteProgram(cleanup_and_exit.fish_shader)
+    if hasattr(cleanup_and_exit, 'seaweed_shader'):
+        gl.glDeleteProgram(cleanup_and_exit.seaweed_shader)
+    
+    # Delete textures
+    textures_to_delete = []
+    if hasattr(cleanup_and_exit, 'bubble_texture'):
+        textures_to_delete.append(cleanup_and_exit.bubble_texture)
+    if hasattr(cleanup_and_exit, 'seaweed_textures'):
+        textures_to_delete.extend(cleanup_and_exit.seaweed_textures)
+    if hasattr(cleanup_and_exit, 'background_textures'):
+        textures_to_delete.extend(cleanup_and_exit.background_textures)
+    
+    if textures_to_delete:
+        gl.glDeleteTextures(textures_to_delete)
+    
+    # Clean up VBO buffers from drawings
+    if hasattr(cleanup_and_exit, 'drawings_list'):
+        for drawing in cleanup_and_exit.drawings_list:
+            if hasattr(drawing, '_vbo_vertices'):
+                drawing._vbo_vertices.delete()
+            if hasattr(drawing, '_vbo_texcoords'):
+                drawing._vbo_texcoords.delete()
+    
+    # Close GLUT window
+    window = glut.glutGetWindow()
+    if window > 0:  # Only close if window exists
+        glut.glutDestroyWindow(window)
+    
+    # Exit normally with success code
+    os._exit(0)  # Use os._exit to avoid raising SystemExit exception
 
 
 def create_key_processor(
@@ -286,7 +344,7 @@ def create_key_processor(
         :return:
         """
         if key == b'\x1b':  # esc
-            os._exit(0)
+            cleanup_and_exit()
 
     return process_key
 
@@ -368,7 +426,9 @@ def main():
     timer_msec = int(1000 / 60) # 60 times per second
     renderer = Renderer()
     drawings_list = []
-    fish_queue = Queue() # Queue to maintain order of the fish and kill the oldest ones
+    cleanup_and_exit.drawings_list = drawings_list  # Store for cleanup
+    
+    fish_queue = Queue() # Queue to maintain order of the fish
     fish_limit = 10 # Maximum amount of fish to draw
     scanned_fish_queue = Queue()
     
@@ -381,6 +441,10 @@ def main():
     fish_shader_program = Renderer.create_shader(gl.GL_VERTEX_SHADER, FISH_SHADER_CODE)
     bubble_texture = Renderer.create_texture_from_file('ocean/images/bubble.png')
     load_fish_from_files(scanner, drawings_list, fish_queue, fish_shader_program, bubble_texture)
+
+    # Store resources in cleanup function for proper deletion
+    cleanup_and_exit.fish_shader = fish_shader_program
+    cleanup_and_exit.bubble_texture = bubble_texture
 
     # Start the file watcher thread
     watcher_thread = Thread(target=watch_photos_directory, args=(scanner, scanned_fish_queue))

@@ -56,13 +56,31 @@ class DrawingFish(Drawing):
         self._right = 1.5
         self._top = -0.7
         self._bottom = 0.3
-        self.position = np.array([np.random.uniform(self._left, self._right), -1, 0.])
-        if np.random.randint(2) == 0:
+        
+        # Randomly choose entry direction (0: left, 1: right, 2: top, 3: bottom)
+        entry_direction = np.random.randint(4)
+        if entry_direction == 0:  # From left
+            self.position = np.array([-2.0, np.random.uniform(self._top, self._bottom), 0.])
+            self.vector = np.array([0.02, 0.0, 0.0])
+        elif entry_direction == 1:  # From right
+            self.position = np.array([2.0, np.random.uniform(self._top, self._bottom), 0.])
+            self.vector = np.array([-0.02, 0.0, 0.0])
+            self.scale[0] = -abs(self.scale[0])  # Face left
+        elif entry_direction == 2:  # From top
+            self.position = np.array([np.random.uniform(self._left, self._right), -1, 0.])
+            self.vector = np.array([0.0, 0.02, 0.0])
+        else:  # From bottom
+            self.position = np.array([np.random.uniform(self._left, self._right), 0.5, 0.])
+            self.vector = np.array([0.0, -0.02, 0.0])
+
+        # Randomly flip horizontal direction for variety
+        if np.random.randint(2) == 0 and (entry_direction in [2, 3]):  # Only for vertical entry
             self.scale[0] = -self.scale[0]
+            self.vector[0] = np.random.uniform(-0.01, 0.01)  # Add slight horizontal movement
 
         # Parameters for animations
         self._animation_stage = 'init'
-        self._init_animation_step = 120
+        self._init_animation_step = np.random.randint(60, 180)  # Random start time between 1-3 seconds at 60fps
         self._water_resistance = np.random.uniform(0.95, 0.98)
 
         # To animate bubbles
