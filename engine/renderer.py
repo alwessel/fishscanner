@@ -24,6 +24,14 @@ class Renderer:
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
+        
+        # Enable depth testing
+        gl.glEnable(gl.GL_DEPTH_TEST)
+        gl.glDepthFunc(gl.GL_LEQUAL)
+        
+        # Enable alpha testing to handle transparency better
+        gl.glEnable(gl.GL_ALPHA_TEST)
+        gl.glAlphaFunc(gl.GL_GREATER, 0.1)  # Only render pixels with alpha > 0.1
 
         # Get current window dimensions
         width = glut.glutGet(glut.GLUT_WINDOW_WIDTH)
@@ -46,24 +54,22 @@ class Renderer:
         """
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        extended_drawings_list = []
-        drawings_queue = Queue()
-        for drawing in drawings_list:
-            extended_drawings_list.append(drawing)
-            for child in drawing.get_child_sprites():
-                drawings_queue.put(child)
-
-        while drawings_queue.qsize() > 0:
-            drawing = drawings_queue.get()
-            extended_drawings_list.append(drawing)
-            for child in drawing.get_child_sprites():
-                drawings_queue.put(child)
-
-
-        sorted_drawings_list = sorted(extended_drawings_list, key=lambda x: x.position[2])
-        for drawing in sorted_drawings_list:
-            drawing.render()
-
+        # Sort drawings by z-position (back to front)
+        sorted_drawings = sorted(drawings_list, key=lambda x: x.position[2], reverse=True)
+        
+        # First pass: render opaque objects
+        gl.glDepthMask(gl.GL_TRUE)
+        for drawing in sorted_drawings:
+            if not hasattr(drawing, 'is_transparent') or not drawing.is_transparent:
+                drawing.render()
+        
+        # Second pass: render transparent objects
+        gl.glDepthMask(gl.GL_FALSE)  # Don't write to depth buffer for transparent objects
+        for drawing in sorted_drawings:
+            if hasattr(drawing, 'is_transparent') and drawing.is_transparent:
+                drawing.render()
+        
+        gl.glDepthMask(gl.GL_TRUE)  # Reset depth mask
         gl.glFlush()
         glut.glutSwapBuffers()
 
