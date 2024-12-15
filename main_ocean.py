@@ -4,6 +4,9 @@ from queue import Queue
 from threading import Thread
 from typing import List, Optional, Callable
 import os
+import time
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 
 import OpenGL.GL as gl
 import OpenGL.GLUT as glut
@@ -201,6 +204,69 @@ def load_fish_from_files(
             continue
 
 
+class PhotoHandler(FileSystemEventHandler):
+    def __init__(self, scanner: SimpleScanner, scanned_fish_queue: Queue):
+        self.scanner = scanner
+        self.scanned_fish_queue = scanned_fish_queue
+        self.processed_files = set()
+
+    def on_created(self, event):
+        if not isinstance(event, FileCreatedEvent):
+            return
+            
+        filename = event.src_path
+        if not (filename.lower().endswith('.jpg') or filename.lower().endswith('.heic')):
+            return
+            
+        if filename in self.processed_files:
+            return
+            
+        try:
+            if filename.lower().endswith('.heic'):
+                # Load HEIC files using pillow-heif
+                heif_file = Image.open(filename)
+                # Convert to RGB format that OpenCV expects
+                rgb_image = heif_file.convert('RGB')
+                # Convert PIL image to OpenCV format
+                frame = cv2.cvtColor(np.array(rgb_image), cv2.COLOR_RGB2BGR)
+            else:
+                # Load JPG files using OpenCV directly
+                frame = cv2.imread(filename)
+
+            if frame is None:
+                print(f'Error reading image with filename: {filename}')
+                return
+
+            scanned_fish = scan_from_frame(frame, self.scanner)
+            if scanned_fish is not None:
+                self.scanned_fish_queue.put(scanned_fish)
+                self.processed_files.add(filename)
+        except Exception as e:
+            print(f'Error processing {filename}: {str(e)}')
+
+
+def watch_photos_directory(
+        scanner: SimpleScanner,
+        scanned_fish_queue: Queue,
+) -> None:
+    """
+    Watch the photos directory for new files using filesystem events
+    :param scanner: Scanner object to process photos
+    :param scanned_fish_queue: Queue to store scanned fish
+    """
+    event_handler = PhotoHandler(scanner, scanned_fish_queue)
+    observer = Observer()
+    observer.schedule(event_handler, path='./photos', recursive=False)
+    observer.start()
+    
+    try:
+        while True:
+            time.sleep(1)  # Keep thread alive
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
+
+
 def create_key_processor(
         scanner: SimpleScanner,
         scanned_fish_queue: Queue,
@@ -315,6 +381,11 @@ def main():
     fish_shader_program = Renderer.create_shader(gl.GL_VERTEX_SHADER, FISH_SHADER_CODE)
     bubble_texture = Renderer.create_texture_from_file('ocean/images/bubble.png')
     load_fish_from_files(scanner, drawings_list, fish_queue, fish_shader_program, bubble_texture)
+
+    # Start the file watcher thread
+    watcher_thread = Thread(target=watch_photos_directory, args=(scanner, scanned_fish_queue))
+    watcher_thread.daemon = True  # Thread will exit when main program exits
+    watcher_thread.start()
 
     glut.glutIgnoreKeyRepeat(True)
     glut.glutKeyboardFunc(create_key_processor(scanner, scanned_fish_queue))

@@ -128,3 +128,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ignore all photos except examples
+photos/*
+!photos/example_*.jpg
+!photos/README.md
