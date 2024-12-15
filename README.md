@@ -73,6 +73,22 @@ cd fishscanner
 - Added comprehensive troubleshooting documentation
 - Efficient file system monitoring using native events
 
+## Recent Improvements
+
+### Enhanced Fish Detection and AR Marker Handling
+- Improved detection of colored edges, particularly for red tones near AR markers
+- Reduced AR marker interference with fish illustrations through:
+  - Smaller marker detection areas (110px vs 130px)
+  - Added 15px padding around markers
+  - Gradient-based transitions to preserve fish details
+- Enhanced edge preservation using:
+  - Morphological gradient detection
+  - Multi-stage mask combination
+  - Gaussian-blurred transitions
+- Better color handling:
+  - Increased weighting for red channel (60% vs standard 30%)
+  - Improved grayscale conversion for better edge detection
+
 ## Troubleshooting
 
 Having issues? Check these common solutions:

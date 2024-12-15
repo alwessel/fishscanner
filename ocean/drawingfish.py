@@ -47,7 +47,7 @@ class DrawingFish(Drawing):
         :param bubble_texture_id: ID of a bubble texture
         """
         super(DrawingFish, self).__init__(texid, grid_x, grid_y, shader)
-
+        self.is_transparent = True  # Mark fish as transparent for proper rendering
         self.scale = np.array([0.6, 0.45, 0.3])  
         self.vector = np.array([0, 0.02, 0.0])
         self.is_alive = True # The fish will be deleted from the drawing list when it False

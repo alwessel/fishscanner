@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
-
+from rembg import remove
+from PIL import Image
+from skimage.segmentation import active_contour
 
 class SimpleScanner:
     """
@@ -88,29 +90,97 @@ class SimpleScanner:
         :return: OpenCV image with alpha channel
         """
         frame = cv2.resize(frame, (self.target_w, self.target_h))
+        
+        # Convert to grayscale with better handling of red channel
+        b, g, r = cv2.split(frame)
+        # Give more weight to red channel
+        gray = cv2.addWeighted(cv2.addWeighted(b, 0.299, g, 0.587, 0), 0.4, r, 0.6, 0)
+        
+        # Create binary mask using adaptive thresholding
+        binary = cv2.adaptiveThreshold(
+            gray,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY_INV,
+            blockSize=25,
+            C=3
+        )
+        
+        # Find contours before removing AR markers
+        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # Create alpha channel
+        alpha = np.zeros_like(gray)
+        
+        if contours:
+            # Find the largest contour (should be the fish)
+            largest_contour = max(contours, key=cv2.contourArea)
+            
+            # Create filled mask from contour
+            cv2.drawContours(alpha, [largest_contour], -1, 255, -1)
+            
+            # Clean up the mask
+            kernel = np.ones((3,3), np.uint8)
+            alpha = cv2.morphologyEx(alpha, cv2.MORPH_CLOSE, kernel)
+            
+            # Dilate slightly to prevent edge cutting
+            alpha = cv2.dilate(alpha, kernel, iterations=2)
+            
+            # Create a gradient mask for smoother transitions
+            gradient_kernel = np.ones((5,5), np.uint8)
+            gradient_mask = cv2.morphologyEx(alpha, cv2.MORPH_GRADIENT, gradient_kernel)
+            
+            # Remove AR markers after contour detection, with smaller area and smoother transition
+            marker_size = 110  # Further reduced from 120
+            padding = 15  # Increased padding
+            gradient_width = 5  # Width of gradient transition
+            
+            def create_marker_mask(x, y, w, h):
+                mask = np.ones_like(alpha) * 255
+                # Create outer and inner rectangles for gradient
+                cv2.rectangle(mask, (x + padding, y + padding), 
+                            (x + w - padding, y + h - padding), 128, -1)
+                cv2.rectangle(mask, (x + padding + gradient_width, y + padding + gradient_width),
+                            (x + w - padding - gradient_width, y + h - padding - gradient_width), 0, -1)
+                # Blur the mask to create a gradient
+                mask = cv2.GaussianBlur(mask, (5,5), 0)
+                return mask
+            
+            # Apply marker masks with gradient
+            marker_positions = [
+                (0, 0),  # Top-left
+                (self.target_w - marker_size, 0),  # Top-right
+                (self.target_w - marker_size, self.target_h - marker_size),  # Bottom-right
+                (0, self.target_h - marker_size)  # Bottom-left
+            ]
+            
+            # Combine all marker masks
+            combined_mask = np.ones_like(alpha) * 255
+            for x, y in marker_positions:
+                marker_mask = create_marker_mask(x, y, marker_size, marker_size)
+                combined_mask = cv2.min(combined_mask, marker_mask)
+            
+            # Apply combined mask with gradient preservation
+            alpha = cv2.multiply(alpha, combined_mask, scale=1/255)
+            
+            # Preserve strong edges from original detection
+            edge_preserve = cv2.bitwise_and(alpha, gradient_mask)
+            alpha = cv2.add(alpha, edge_preserve)
+            
+            # Ensure binary mask (no partial transparency)
+            _, alpha = cv2.threshold(alpha, 127, 255, cv2.THRESH_BINARY)
 
-        # TODO: remove this fix for final version
-        frame = cv2.convertScaleAbs(frame, alpha=1.2, beta=10)
-
-        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        ret, mask = cv2.threshold(gray, 130, 255, cv2.THRESH_BINARY)
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-
-        # Remove markers
-        marker_size = 130
-        mask = cv2.rectangle(mask, (0, 0), (marker_size, marker_size), 255, -1)
-        mask = cv2.rectangle(mask, (self.target_w - marker_size, 0), (self.target_w, marker_size), 255, -1)
-        mask = cv2.rectangle(mask, (self.target_w - marker_size, self.target_h - marker_size),
-                             (self.target_w, self.target_h), 255, -1)
-        mask = cv2.rectangle(mask, (0, self.target_h - marker_size), (marker_size, self.target_h), 255, -1)
-
-        mask_filled = mask.copy()
-        cv2.floodFill(mask_filled, np.zeros((self.target_h + 2, self.target_w + 2), np.uint8), (0, 0), 0)
-        mask_filled += 255 - mask
-
+        # Create RGBA image
         filtered_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2RGBA)
-        filtered_frame[..., 3] = mask_filled
+        
+        # Set alpha channel
+        filtered_frame[..., 3] = alpha
+        
+        # Ensure complete transparency where alpha is 0
+        filtered_frame[alpha == 0] = [0, 0, 0, 0]
+        
+        # Ensure solid opacity where fish is present
+        filtered_frame[alpha == 255, 3] = 255
 
         return filtered_frame
 
