@@ -1,8 +1,6 @@
 import cv2
 import numpy as np
-from rembg import remove
 from PIL import Image
-from skimage.segmentation import active_contour
 
 class SimpleScanner:
     """
