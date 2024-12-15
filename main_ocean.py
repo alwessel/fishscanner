@@ -2,7 +2,7 @@ from functools import partial
 from glob import glob
 from queue import Queue
 from threading import Thread
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Tuple
 import os
 import sys
 import time
@@ -71,9 +71,9 @@ def draw_sails(
     drawings_list.append(drawing)
 
 
-def draw_ocean(drawings_list: List[Drawing]) -> None:
+def draw_complex_ocean(drawings_list: List[Drawing]) -> None:
     """
-    Draw all the sprites in the ocean scene
+    Draw the complex ocean scene with all decorative elements
     :param drawings_list: Lists of sprites to draw
     :return:
     """
@@ -108,14 +108,12 @@ def draw_ocean(drawings_list: List[Drawing]) -> None:
         drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
         drawing.position = np.array([1.2, 1.0, 0.9])
         drawing.scale = np.array([0.8, 1.4, 1.0])
-        # drawing.color = np.array([0.5, 0.5, 1.0])
         drawings_list.append(drawing)
 
         # Draw seaweed in the front of the rock
         drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
         drawing.position = np.array([0.2, 0.15, -0.7])
         drawing.scale = np.array([0.4, 0.4, 1.0])
-        # drawing.color = np.array([0.6, 0.6, 1.0])
         drawings_list.append(drawing)
 
         seaweed_texture = texture
@@ -123,7 +121,6 @@ def draw_ocean(drawings_list: List[Drawing]) -> None:
         drawing = DrawingSeaweed(seaweed_texture, shader=seaweed_shader_program)
         drawing.position = np.array([-1.2, 0.6, 0.9])
         drawing.scale = np.array([0.3, 1.0, 1.0])
-        # drawing.color = np.array([0.5, 0.5, 1.0])
         drawings_list.append(drawing)
 
         # Draw seaweed on the background
@@ -142,6 +139,38 @@ def draw_ocean(drawings_list: List[Drawing]) -> None:
         drawing.position = np.array([-0.4, -0.2, -0.795])
         drawing.scale = np.array([0.1, 0.3, 1.0])
         drawings_list.append(drawing)
+
+
+def draw_simple_scene(drawings_list: List[Drawing], image_path: str) -> None:
+    """
+    Draw a simple scene with just a background image
+    :param drawings_list: Lists of sprites to draw
+    :param image_path: Path to the background image
+    :return:
+    """
+    cleanup_and_exit.background_textures = []
+    texture = Renderer.create_texture_from_file(image_path)
+    cleanup_and_exit.background_textures.append(texture)
+    drawings_list.append(create_back_layer(image_path, -0.8))
+
+
+def update_scene(drawings_list: List[Drawing], scene_config: dict) -> None:
+    """
+    Update the scene based on the scene configuration
+    :param drawings_list: List of sprites to draw
+    :param scene_config: Dictionary containing scene configuration
+    """
+    # Keep track of fish
+    fish_drawings = [d for d in drawings_list if isinstance(d, DrawingFish)]
+    
+    # Remove everything except fish
+    drawings_list[:] = fish_drawings
+    
+    # Draw the new scene based on its type
+    if scene_config['type'] == 'complex':
+        draw_complex_ocean(drawings_list)
+    else:  # simple scene
+        draw_simple_scene(drawings_list, scene_config['background'])
 
 
 def scan_from_frame(
@@ -188,14 +217,10 @@ def load_fish_from_files(
     for filename in files:
         try:
             if filename.lower().endswith('.heic'):
-                # Load HEIC files using pillow-heif
                 heif_file = Image.open(filename)
-                # Convert to RGB format that OpenCV expects
                 rgb_image = heif_file.convert('RGB')
-                # Convert PIL image to OpenCV format
                 frame = cv2.cvtColor(np.array(rgb_image), cv2.COLOR_RGB2BGR)
             else:
-                # Load JPG files using OpenCV directly
                 frame = cv2.imread(filename)
 
             if frame is None:
@@ -328,17 +353,23 @@ def cleanup_and_exit():
 def create_key_processor(
         scanner: SimpleScanner,
         scanned_fish_queue: Queue,
-) -> Callable:
+        drawings_list: List[Drawing],
+        background_scenes: List[dict],
+        current_scene_index: List[int]
+) -> Tuple[Callable, Callable]:
     """
     Create function to process keyboard events
     :param scanner: Scanner object
     :param scanned_fish_queue: Queue to store scanned fish
-    :return:
+    :param drawings_list: List of sprites to draw
+    :param background_scenes: List of scene configurations
+    :param current_scene_index: Mutable list to keep track of the current scene index
+    :return: Tuple of keyboard and special key handlers
     """
 
     def process_key(key: bytes, *_):
         """
-        Process keyboard events
+        Process regular keyboard events
         :param key: Pressed key
         :param _: Other parameters
         :return:
@@ -346,7 +377,21 @@ def create_key_processor(
         if key == b'\x1b':  # esc
             cleanup_and_exit()
 
-    return process_key
+    def process_special_key(key: int, *_):
+        """
+        Process special keyboard events (arrow keys, function keys, etc.)
+        :param key: Special key code
+        :param _: Other parameters
+        :return:
+        """
+        if key == glut.GLUT_KEY_LEFT:  # left arrow
+            current_scene_index[0] = (current_scene_index[0] - 1) % len(background_scenes)
+            update_scene(drawings_list, background_scenes[current_scene_index[0]])
+        elif key == glut.GLUT_KEY_RIGHT:  # right arrow
+            current_scene_index[0] = (current_scene_index[0] + 1) % len(background_scenes)
+            update_scene(drawings_list, background_scenes[current_scene_index[0]])
+
+    return process_key, process_special_key
 
 
 def create_animation_function(
@@ -432,11 +477,30 @@ def main():
     fish_limit = 10 # Maximum amount of fish to draw
     scanned_fish_queue = Queue()
     
+    # Initialize scenes configuration
+    background_scenes = [
+        {
+            'type': 'complex',
+            'name': 'Ocean'
+        },
+        {
+            'type': 'simple',
+            'name': 'Scene 2',
+            'background': 'ocean/images/scene2.jpg'
+        },
+        {
+            'type': 'simple',
+            'name': 'Scene 3',
+            'background': 'ocean/images/scene3.webp'
+        },
+    ]
+    current_scene_index = [0]
+    
     # Create display function first
     glut.glutDisplayFunc(partial(renderer.render, drawings_list))
     
     # Then initialize the scene
-    draw_ocean(drawings_list)
+    update_scene(drawings_list, background_scenes[current_scene_index[0]])
 
     fish_shader_program = Renderer.create_shader(gl.GL_VERTEX_SHADER, FISH_SHADER_CODE)
     bubble_texture = Renderer.create_texture_from_file('ocean/images/bubble.png')
@@ -452,7 +516,9 @@ def main():
     watcher_thread.start()
 
     glut.glutIgnoreKeyRepeat(True)
-    glut.glutKeyboardFunc(create_key_processor(scanner, scanned_fish_queue))
+    key_handler, special_key_handler = create_key_processor(scanner, scanned_fish_queue, drawings_list, background_scenes, current_scene_index)
+    glut.glutKeyboardFunc(key_handler)
+    glut.glutSpecialFunc(special_key_handler)
     glut.glutTimerFunc(timer_msec, create_animation_function(renderer, drawings_list, scanned_fish_queue,
                                                              fish_queue, fish_limit, timer_msec,
                                                              fish_shader_program, bubble_texture), 0)

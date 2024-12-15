@@ -48,6 +48,11 @@ cd fishscanner
    - The fish will appear automatically in the ocean!
    - Run the app: `./run.sh`
 
+## Controls
+
+- **Arrow Keys**: Use left and right arrow keys to switch between different ocean scenes
+- **ESC**: Exit the application
+
 ## 2024 Changes
 
 ### Core Improvements
