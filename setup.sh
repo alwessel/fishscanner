@@ -3,6 +3,47 @@
 # Exit on error, undefined variables, and pipe failures
 set -euo pipefail
 
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuration
+MIN_DISK_SPACE=500000000  # 500MB
+MIN_MEMORY=1000000000     # 1GB
+PYTHON_VERSION="3.11"
+BREW_PACKAGES=("glfw" "python@${PYTHON_VERSION}" "freeglut")
+REQUIRED_DIRS=("photos" "ocean/patterns")
+
+# Progress tracking
+total_steps=8
+current_step=0
+
+# Logging
+LOG_FILE="setup.log"
+exec 1> >(tee -a "$LOG_FILE")
+exec 2> >(tee -a "$LOG_FILE" >&2)
+
+# Function to show progress
+show_progress() {
+    current_step=$((current_step + 1))
+    echo -e "${GREEN}[$current_step/$total_steps]${NC} $1"
+}
+
+# Function to show error and exit
+error_exit() {
+    echo -e "${RED}Error: $1${NC}"
+    echo "Check $LOG_FILE for details"
+    exit 1
+}
+
+# Function to show warning
+show_warning() {
+    echo -e "${YELLOW}Warning: $1${NC}"
+}
+
 # Function to check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -13,128 +54,185 @@ xquartz_installed() {
     [ -d "/Applications/XQuartz.app" ]
 }
 
-# Function to check write permissions
-check_permissions() {
-    local dir="$1"
-    if [ ! -w "$dir" ]; then
-        echo "⚠️  No write permissions in $dir"
-        echo "Please run: sudo chown -R $(whoami) $dir"
-        exit 1
+# Function to check system requirements
+check_system_requirements() {
+    show_progress "Checking system requirements..."
+    
+    # Check OS
+    if [[ "$(uname)" != "Darwin" ]]; then
+        error_exit "This script is only for macOS"
     fi
+    
+    # Check disk space
+    available_space=$(df -k . | awk 'NR==2 {print $4}')
+    if [ "$available_space" -lt "$MIN_DISK_SPACE" ]; then
+        error_exit "Not enough disk space (need at least 500MB)"
+    fi
+    
+    # Check memory
+    available_memory=$(sysctl hw.memsize | awk '{print $2}')
+    if [ "$available_memory" -lt "$MIN_MEMORY" ]; then
+        error_exit "Not enough memory (need at least 1GB)"
+    fi
+    
+    # Check network connectivity
+    if ! ping -c 1 github.com &> /dev/null; then
+        error_exit "No internet connection"
+    fi
+    
+    # Check required directories
+    for dir in "${REQUIRED_DIRS[@]}"; do
+        if [ ! -d "$dir" ]; then
+            error_exit "Required directory '$dir' not found"
+        fi
+    done
 }
 
 # Function to setup shell profile
 setup_shell_profile() {
-    local profile="$1"
-    if [ -f "$profile" ]; then
-        if ! grep -q "export DISPLAY=:0" "$profile"; then
-            echo "export DISPLAY=:0" >> "$profile"
-        fi
-        if ! grep -q "opt/homebrew" "$profile" && [[ $(uname -m) == 'arm64' ]]; then
-            echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$profile"
-        fi
-    fi
-}
-
-echo "🐠 Setting up FishScanner..."
-
-# Check current directory permissions
-check_permissions "$(pwd)"
-
-# Check if Homebrew is installed
-if ! command_exists brew; then
-    echo "Installing Homebrew..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    show_progress "Setting up shell profile..."
     
-    # Add Homebrew to PATH for Apple Silicon Macs
-    if [[ $(uname -m) == 'arm64' ]]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
+    local profile="$HOME/.zshrc"
+    local updated=false
+    
+    # Create profile if it doesn't exist
+    touch "$profile"
+    
+    # Add DISPLAY export if needed
+    if ! grep -q "export DISPLAY=:0" "$profile"; then
+        echo "export DISPLAY=:0" >> "$profile"
+        updated=true
     fi
-else
-    echo "✅ Homebrew is already installed"
-fi
-
-# Install system dependencies using Homebrew
-echo "Installing system dependencies..."
-brew install glfw python@3.11 freeglut || {
-    echo "⚠️  Error installing system dependencies"
-    echo "Try running: brew doctor"
-    exit 1
+    
+    # Add Homebrew to PATH for Apple Silicon
+    if [[ $(uname -m) == 'arm64' ]] && ! grep -q "opt/homebrew" "$profile"; then
+        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$profile"
+        updated=true
+    fi
+    
+    if [ "$updated" = true ]; then
+        show_warning "Shell profile updated. You'll need to restart your terminal or run: source $profile"
+    fi
 }
 
-# Verify Python 3.11 is available
-if ! command_exists python3.11; then
-    echo "⚠️  Python 3.11 not found in PATH"
-    echo "Try running: brew link python@3.11"
-    exit 1
-fi
-
-# Verify Python version
-PYTHON_VERSION=$(python3.11 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-if [[ "$PYTHON_VERSION" != "3.11" ]]; then
-    echo "⚠️  Wrong Python version: $PYTHON_VERSION (expected 3.11)"
-    exit 1
-fi
-
-# Check if XQuartz is installed
-if ! xquartz_installed; then
-    echo "Installing XQuartz..."
-    brew install --cask xquartz
-    echo "⚠️  Important: You'll need to log out and log back in for XQuartz to work properly"
-else
-    echo "✅ XQuartz is already installed"
-fi
-
-# Remove existing venv if present
-if [ -d "venv" ]; then
-    echo "Removing existing virtual environment..."
-    rm -rf venv
-fi
-
-# Create and activate virtual environment
-echo "Setting up Python virtual environment..."
-python3.11 -m venv venv || {
-    echo "⚠️  Error creating virtual environment"
-    echo "Please check Python installation: python3.11 -m venv --help"
-    exit 1
+# Function to install/update Homebrew
+setup_homebrew() {
+    show_progress "Setting up Homebrew..."
+    
+    if ! command_exists brew; then
+        echo "Installing Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || error_exit "Failed to install Homebrew"
+        
+        if [[ $(uname -m) == 'arm64' ]]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+        fi
+    else
+        echo "Updating Homebrew..."
+        brew update || show_warning "Failed to update Homebrew"
+    fi
 }
 
-# Activate virtual environment
-source venv/bin/activate || {
-    echo "⚠️  Error activating virtual environment"
-    exit 1
+# Function to install system dependencies
+install_dependencies() {
+    show_progress "Installing system dependencies..."
+    
+    # Install Homebrew packages
+    for package in "${BREW_PACKAGES[@]}"; do
+        echo -e "${BLUE}Installing $package...${NC}"
+        brew install "$package" || error_exit "Failed to install $package"
+    done
+    
+    # Install XQuartz if needed
+    if ! xquartz_installed; then
+        echo "Installing XQuartz..."
+        brew install --cask xquartz || error_exit "Failed to install XQuartz"
+        show_warning "You'll need to log out and log back in for XQuartz to work properly"
+    fi
 }
 
-# Upgrade pip
-python3 -m pip install --upgrade pip
-
-# Install Python dependencies
-echo "Installing Python packages..."
-python3 -m pip install -r requirements.txt || {
-    echo "⚠️  Error installing Python packages"
-    echo "Try running: python3 -m pip install --upgrade pip"
-    exit 1
+# Function to setup Python environment
+setup_python() {
+    show_progress "Setting up Python environment..."
+    
+    # Verify Python version
+    if ! command_exists "python${PYTHON_VERSION}"; then
+        error_exit "Python ${PYTHON_VERSION} not found. Try running: brew link python@${PYTHON_VERSION}"
+    fi
+    
+    local python_cmd="python${PYTHON_VERSION}"
+    local version=$($python_cmd -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+    if [[ "$version" != "${PYTHON_VERSION}" ]]; then
+        error_exit "Wrong Python version: $version (expected ${PYTHON_VERSION})"
+    fi
+    
+    # Remove existing venv if present
+    if [ -d "venv" ]; then
+        echo "Removing existing virtual environment..."
+        rm -rf venv
+    fi
+    
+    # Create and activate virtual environment
+    echo "Creating virtual environment..."
+    $python_cmd -m venv venv || error_exit "Failed to create virtual environment"
+    
+    # Activate virtual environment
+    source venv/bin/activate || error_exit "Failed to activate virtual environment"
+    
+    # Upgrade pip
+    echo "Upgrading pip..."
+    pip install --upgrade pip || show_warning "Failed to upgrade pip"
+    
+    # Install Python dependencies
+    echo "Installing Python dependencies..."
+    pip install -r requirements.txt || error_exit "Failed to install Python dependencies"
 }
 
-# Optional: Install PyOpenGL-accelerate for better performance
-echo "Installing optional performance enhancement..."
-python3 -m pip install PyOpenGL-accelerate || echo "⚠️  PyOpenGL-accelerate installation failed (this is optional)"
-
-# Setup shell profiles
-setup_shell_profile ~/.zshrc
-setup_shell_profile ~/.bashrc
-
-# Verify OpenGL
-python3 -c "import OpenGL.GL" || {
-    echo "⚠️  OpenGL verification failed"
-    echo "Please try reinstalling: brew reinstall freeglut"
-    exit 1
+# Function to verify installation
+verify_installation() {
+    show_progress "Verifying installation..."
+    
+    # Check if virtual environment is active
+    if [[ "$VIRTUAL_ENV" != *"venv"* ]]; then
+        error_exit "Virtual environment not active"
+    fi
+    
+    # Check if all required packages are installed
+    python -c "import numpy, cv2, OpenGL, glfw" || error_exit "Missing required Python packages"
+    
+    # Check if XQuartz is running
+    if ! pgrep -f "XQuartz" >/dev/null && ! pgrep -f "Xorg" >/dev/null; then
+        show_warning "XQuartz is not running. You may need to log out and log back in"
+    fi
 }
 
-echo """
-✨ Setup complete! ✨
+# Main installation process
+main() {
+    echo -e "${BLUE}🐠 Setting up FishScanner...${NC}"
+    echo "Installation log will be saved to $LOG_FILE"
+    
+    # Clear existing log
+    > "$LOG_FILE"
+    
+    # Run installation steps
+    check_system_requirements
+    setup_shell_profile
+    setup_homebrew
+    install_dependencies
+    setup_python
+    verify_installation
+    
+    # Final instructions
+    show_progress "Setup complete!"
+    echo -e "${GREEN}✨ FishScanner has been successfully installed!${NC}"
+    echo
+    echo "To start using FishScanner:"
+    echo "1. Log out and log back in (required for XQuartz)"
+    echo "2. Run ./run.sh to start the application"
+    echo
+    echo "For troubleshooting, check:"
+    echo "- Setup log: $LOG_FILE"
+    echo "- Troubleshooting guide: TROUBLESHOOTING.md"
+}
 
-To run FishScanner:
-1. Log out and log back in (required for XQuartz)
-2. Run: ./run.sh
-"""
+# Run main installation
+main
