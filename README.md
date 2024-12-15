@@ -17,8 +17,6 @@ This project is based on the wonderful work by [David Svitov](https://github.com
 > - **🔄 Modern Stack**: Updated to Python 3.11 and latest OpenCV
 > - **🪄 Live Updates**: Fish appear instantly when you add photos - no restart needed!
 > - **🛠 Improved Reliability**: Better error handling and troubleshooting
->
-> [See full changelog](#2024-changes)
 
 Bring your fish drawings to life in a virtual aquarium! This project is inspired by this [video](https://www.youtube.com/watch?v=ILrr8vToR9Y&feature=emb_logo) from Workinman Interactive LLC.
 
@@ -52,42 +50,29 @@ cd fishscanner
 
 ## 2024 Changes
 
-### New Features
-- **One-Click Setup**: Added setup and run scripts for easy installation
-- **Modern Dependencies**: Updated to Python 3.11 and latest OpenCV
-- **Better Graphics**: 
+### Core Improvements
+- **Enhanced Fish Detection**:
+  - Improved edge preservation using gradient-based detection
+  - Better handling of red ink details (60% weighting vs standard 30%)
+  - Optimized AR marker boundaries with padding and smooth transitions
+  - Reduced marker interference using smaller detection areas (110px)
+
+### Technical Updates
+- **Modernized Graphics Pipeline**:
   - Enhanced OpenGL integration with proper GLUT initialization
-  - Fixed vertex array handling for better hardware support
-- **Apple Silicon Support**: Added compatibility for M1/M2 Macs
-- **Live File Watching**: 
-  - Fish appear instantly when you add photos to the folder
-  - No need to restart the app when adding new fish
-  - Uses efficient filesystem events for minimal system impact
-- **Improved Error Handling**: Better error messages and troubleshooting guides
+  - Improved state management and vertex array handling
+  - Better performance with efficient filesystem monitoring
+  - Updated dependencies for cross-platform compatibility
 
-### Technical Improvements
-- Modernized OpenGL context initialization
-- Updated dependency specifications for better compatibility
-- Improved state management in rendering pipeline
-- Enhanced graphics performance and stability
-- Added comprehensive troubleshooting documentation
-- Efficient file system monitoring using native events
-
-## Recent Improvements
-
-### Enhanced Fish Detection and AR Marker Handling
-- Improved detection of colored edges, particularly for red tones near AR markers
-- Reduced AR marker interference with fish illustrations through:
-  - Smaller marker detection areas (110px vs 130px)
-  - Added 15px padding around markers
-  - Gradient-based transitions to preserve fish details
-- Enhanced edge preservation using:
-  - Morphological gradient detection
-  - Multi-stage mask combination
-  - Gaussian-blurred transitions
-- Better color handling:
-  - Increased weighting for red channel (60% vs standard 30%)
-  - Improved grayscale conversion for better edge detection
+### User Experience
+- **Streamlined Setup**:
+  - One-click installation script
+  - Automatic dependency management
+  - Native Apple Silicon support
+- **Real-time Updates**:
+  - Instant fish appearance when photos are added
+  - No app restart needed for new additions
+  - Comprehensive error handling and troubleshooting
 
 ## Platform Compatibility
 
