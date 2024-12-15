@@ -89,6 +89,33 @@ cd fishscanner
   - Increased weighting for red channel (60% vs standard 30%)
   - Improved grayscale conversion for better edge detection
 
+## Platform Compatibility
+
+FishScanner is compatible with:
+- macOS (both Apple Silicon and Intel)
+- Windows
+- Linux
+
+### Platform-Specific Notes
+
+#### macOS
+- Works on both Apple Silicon (M1/M2) and Intel processors
+- No additional configuration needed
+
+#### Windows
+- Requires OpenGL drivers (typically pre-installed)
+- May need to install Microsoft Visual C++ Redistributable if not already present
+
+#### Linux
+- Requires OpenGL development libraries
+  ```bash
+  # Ubuntu/Debian
+  sudo apt-get install python3-opengl
+  sudo apt-get install libglfw3
+  ```
+
+All core dependencies (numpy, OpenCV, PyOpenGL, etc.) are cross-platform compatible.
+
 ## Troubleshooting
 
 Having issues? Check these common solutions:
