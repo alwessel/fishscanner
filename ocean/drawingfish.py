@@ -37,6 +37,7 @@ class DrawingFish(Drawing):
             grid_y: int = 5,
             shader: int = 0,
             bubble_texture_id: int = 0,
+            fishName: str = None,
     ):
         """
         Set default position of fish and select default vector of moving
@@ -45,8 +46,10 @@ class DrawingFish(Drawing):
         :param grid_y: Mesh elements along axis Y
         :param shader: ID of shader. Select 0 if you need no shader
         :param bubble_texture_id: ID of a bubble texture
+        :param fishName: Name of the fish if given from scanner
         """
         super(DrawingFish, self).__init__(texid, grid_x, grid_y, shader)
+        self.fishName = fishName
         self.is_transparent = True  # Mark fish as transparent for proper rendering
         self.scale = np.array([0.4, 0.3, 0.3])  
         self.vector = np.array([0, 0.02, 0.0])

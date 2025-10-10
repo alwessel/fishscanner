@@ -7,7 +7,7 @@ import os
 import sys
 import time
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, FileCreatedEvent
+from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileDeletedEvent
 
 import OpenGL.GL as gl
 import OpenGL.GLUT as glut
@@ -236,7 +236,8 @@ def load_fish_from_files(
             if scanned_fish is not None:
                 drawing = DrawingFish(Renderer.create_texture(scanned_fish),
                                     shader=fish_shader_program,
-                                    bubble_texture_id=bubble_texture)
+                                    bubble_texture_id=bubble_texture,
+                                    fishName=filename)
                 drawings_list.append(drawing)
                 fish_queue.put(drawing)
         except Exception as e:
@@ -245,10 +246,26 @@ def load_fish_from_files(
 
 
 class PhotoHandler(FileSystemEventHandler):
-    def __init__(self, scanner: SimpleScanner, scanned_fish_queue: Queue):
+    def __init__(self, scanner: SimpleScanner, scanned_fish_queue: Queue, fish_queue: Queue):
         self.scanner = scanner
         self.scanned_fish_queue = scanned_fish_queue
+        self.fish_queue = fish_queue
         self.processed_files = set()
+        self.file_to_fish = {}  # Track mapping from filename to fish drawing
+
+    def on_deleted(self, event):
+         if isinstance(event, FileDeletedEvent):
+            filename = event.src_path
+            if not (filename.lower().endswith('.jpg') or filename.lower().endswith('.heic') or filename.lower().endswith('.png')):
+                return
+                
+            for drawing in list(self.fish_queue.queue):
+                if drawing.fishName == filename:
+                    drawing.go_away()
+                    self.fish_queue.queue.remove(drawing)
+                    self.processed_files.discard(filename)
+                    print(f'Removed fish for deleted file: {filename}')
+                    break 
 
     def on_created(self, event):
         if not isinstance(event, FileCreatedEvent):
@@ -281,7 +298,7 @@ class PhotoHandler(FileSystemEventHandler):
 
             scanned_fish = scan_from_frame(frame, self.scanner)
             if scanned_fish is not None:
-                self.scanned_fish_queue.put(scanned_fish)
+                self.scanned_fish_queue.put((scanned_fish, filename))
                 self.processed_files.add(filename)
                 print(f'Processed image with filename: {filename}')
         except Exception as e:
@@ -291,13 +308,15 @@ class PhotoHandler(FileSystemEventHandler):
 def watch_photos_directory(
         scanner: SimpleScanner,
         scanned_fish_queue: Queue,
+        fish_queue: Queue,
 ) -> None:
     """
     Watch the photos directory for new files using filesystem events
     :param scanner: Scanner object to process photos
     :param scanned_fish_queue: Queue to store scanned fish
+    :param fish_queue: Queue to maintain order of fish
     """
-    event_handler = PhotoHandler(scanner, scanned_fish_queue)
+    event_handler = PhotoHandler(scanner, scanned_fish_queue, fish_queue)
     observer = Observer()
     observer.schedule(event_handler, path=PHOTOS_PATH, recursive=False)
     observer.start()
@@ -359,16 +378,12 @@ def cleanup_and_exit():
 
 
 def create_key_processor(
-        scanner: SimpleScanner,
-        scanned_fish_queue: Queue,
         drawings_list: List[Drawing],
         background_scenes: List[dict],
         current_scene_index: List[int]
 ) -> Tuple[Callable, Callable]:
     """
     Create function to process keyboard events
-    :param scanner: Scanner object
-    :param scanned_fish_queue: Queue to store scanned fish
     :param drawings_list: List of sprites to draw
     :param background_scenes: List of scene configurations
     :param current_scene_index: Mutable list to keep track of the current scene index
@@ -416,7 +431,7 @@ def create_animation_function(
     Wrapper for animation function
     :param renderer: Object of the Engine to draw all the objects
     :param drawings_list: Lists of sprites to draw
-    :param scanned_fish_queue: Queue with scanning results
+    :param scanned_fish_queue: Queue with scanning results (tuples of scanned_fish and filename)
     :param fish_queue: Queue to maintain order of fish
     :param fish_limit: Maximum amount of fish to draw
     :param timer_msec: Timer interval value for animation
@@ -430,10 +445,11 @@ def create_animation_function(
 
         # Get fish scan from scanner thread
         if scanned_fish_queue.qsize() > 0:
-            scanned_fish = scanned_fish_queue.get()
+            scanned_fish, filename = scanned_fish_queue.get()
             drawing = DrawingFish(Renderer.create_texture(scanned_fish),
                                   shader=fish_shader_program,
-                                  bubble_texture_id=bubble_texture)
+                                  bubble_texture_id=bubble_texture,
+                                  fishName=filename)
             drawings_list.append(drawing)
             fish_queue.put(drawing)
 
@@ -519,12 +535,12 @@ def main():
     cleanup_and_exit.bubble_texture = bubble_texture
 
     # Start the file watcher thread
-    watcher_thread = Thread(target=watch_photos_directory, args=(scanner, scanned_fish_queue))
+    watcher_thread = Thread(target=watch_photos_directory, args=(scanner, scanned_fish_queue, fish_queue))
     watcher_thread.daemon = True  # Thread will exit when main program exits
     watcher_thread.start()
 
     glut.glutIgnoreKeyRepeat(True)
-    key_handler, special_key_handler = create_key_processor(scanner, scanned_fish_queue, drawings_list, background_scenes, current_scene_index)
+    key_handler, special_key_handler = create_key_processor(drawings_list, background_scenes, current_scene_index)
     glut.glutKeyboardFunc(key_handler)
     glut.glutSpecialFunc(special_key_handler)
     glut.glutTimerFunc(timer_msec, create_animation_function(renderer, drawings_list, scanned_fish_queue,
