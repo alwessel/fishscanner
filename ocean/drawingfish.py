@@ -146,9 +146,19 @@ class DrawingFish(Drawing):
             if self.position[0] > self._right or self.position[0] < self._left:
                 self.vector[0] = -self.vector[0]
                 self.rotation_vector[1] = 5.0
+                # Move fish away from boundary to prevent getting stuck
+                if self.position[0] > self._right:
+                    self.position[0] = self._right - 0.01
+                elif self.position[0] < self._left:
+                    self.position[0] = self._left + 0.01
 
             if self.position[1] < self._top or self.position[1] > self._bottom:
                 self.vector[1] = -self.vector[1]
+                # Move fish away from boundary to prevent getting stuck
+                if self.position[1] < self._top:
+                    self.position[1] = self._top + 0.01
+                elif self.position[1] > self._bottom:
+                    self.position[1] = self._bottom - 0.01
 
             self.rotate[1] = (self.rotate[1] + self.rotation_vector[1]) % 360
 
