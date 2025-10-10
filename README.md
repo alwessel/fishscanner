@@ -2,23 +2,24 @@
 
 A magical application that brings your fish drawings to life in a virtual ocean! Draw a fish on paper, scan it, and watch it swim around with other fish in a beautiful underwater world. 
 
-This project is based on the wonderful work by [David Svitov](https://github.com/david-svitov/fishscanner), who created the original FishScanner. This version extends his creative vision to add support for HEIC images (from iPhones), live updates so you can add new fish without restarting the app, improve background detection, and make the experience even more delightful.
+This project is based on the wonderful work by [David Svitov](https://github.com/david-svitov/fishscanner), who created the original FishScanner and the improved version of [jharsono](https://github.com/jharsono/fishscanner) that extends his creative vision to add support for HEIC images (from iPhones), live updates so you can add new fish without restarting the app, improve background detection, and make the experience even more delightful.
 
-> Forked from [david-svitov/fishscanner](https://github.com/david-svitov/fishscanner)
+I updated the scripts to run on windows 11 with Python 3.11
+
+> [jharsono](https://github.com/jharsono/fishscanner)
+
 
 ![Run example](./images/img1.png)
 
-> **🎉 2024 Update: Major Improvements!**
->
-> A new and modernized FishScanner with:
-> - **🚀 One-Click Setup**: Just run `./setup.sh` and you're ready to go
-> - **📱 Apple Silicon Support**: Native support for M1/M2 Macs
-> - **🎮 Better Graphics**: Enhanced OpenGL integration and rendering
-> - **🔄 Modern Stack**: Updated to Python 3.11 and latest OpenCV
-> - **🪄 Live Updates**: Fish appear instantly when you add photos - no restart needed!
-> - **🛠 Improved Reliability**: Better error handling and troubleshooting
+## Installation (windows)
 
-Bring your fish drawings to life in a virtual aquarium! This project is inspired by this [video](https://www.youtube.com/watch?v=ILrr8vToR9Y&feature=emb_logo) from Workinman Interactive LLC.
+```cmd
+git clone https://github.com/alwessel/fishscanner.git
+cd fishscanner
+# this expecteds Python 3.11 to be installed already.
+./setup.cmd
+
+```
 
 ## Installation (macOS)
 
@@ -44,9 +45,9 @@ cd fishscanner
 
 3. Add your fish
    - Take a photo of your drawing and save it to the `photos` folder
-   - Supported formats: JPG and HEIC (iPhone photos)
+   - Supported formats: JPG, PNG and HEIC (iPhone photos)
    - The fish will appear automatically in the ocean!
-   - Run the app: `./run.sh`
+   - Run the app: `./run.sh` or `./run.bat` (on Windows)
 
 ## Controls
 

@@ -26,6 +26,9 @@ from ocean.drawingstatic import DrawingStatic
 # Register HEIF opener for HEIC support
 register_heif_opener()
 
+# Global configuration
+PHOTOS_PATH = os.environ.get('PHOTOS_PATH', './photos')  # Folder to load and watch for new fish photos
+
 
 def create_back_layer(
         filename: str,
@@ -210,9 +213,11 @@ def load_fish_from_files(
     :return:
     """
     # Load both JPG and HEIC files
-    jpg_files = glob('./photos/*.jpg')
-    heic_files = glob('./photos/*.heic')
-    files = jpg_files + heic_files
+    print(f'Loading fish using env param PHOTOS_PATH:  {PHOTOS_PATH} ...')
+    jpg_files = glob(f'{PHOTOS_PATH}/*.jpg')
+    heic_files = glob(f'{PHOTOS_PATH}/*.heic')
+    png_files = glob(f'{PHOTOS_PATH}/*.png')
+    files = jpg_files + heic_files + png_files
 
     for filename in files:
         try:
@@ -250,13 +255,15 @@ class PhotoHandler(FileSystemEventHandler):
             return
             
         filename = event.src_path
-        if not (filename.lower().endswith('.jpg') or filename.lower().endswith('.heic')):
+        if not (filename.lower().endswith('.jpg') or filename.lower().endswith('.heic') or filename.lower().endswith('.png')):
             return
             
         if filename in self.processed_files:
             return
             
         try:
+            # poor hack, wait for 3 seconds to ensure file is fully written after is created
+            time.sleep(3)
             if filename.lower().endswith('.heic'):
                 # Load HEIC files using pillow-heif
                 heif_file = Image.open(filename)
@@ -276,6 +283,7 @@ class PhotoHandler(FileSystemEventHandler):
             if scanned_fish is not None:
                 self.scanned_fish_queue.put(scanned_fish)
                 self.processed_files.add(filename)
+                print(f'Processed image with filename: {filename}')
         except Exception as e:
             print(f'Error processing {filename}: {str(e)}')
 
@@ -291,7 +299,7 @@ def watch_photos_directory(
     """
     event_handler = PhotoHandler(scanner, scanned_fish_queue)
     observer = Observer()
-    observer.schedule(event_handler, path='./photos', recursive=False)
+    observer.schedule(event_handler, path=PHOTOS_PATH, recursive=False)
     observer.start()
     
     # Store observer in cleanup function for access during exit
@@ -445,10 +453,10 @@ def main():
     glut.glutInit()
     glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGB | glut.GLUT_DEPTH)
     
-    # Request OpenGL 3.3 core profile
+    # Request OpenGL 3.3 compatibility profile (instead of core profile)
     glut.glutInitContextVersion(3, 3)
-    glut.glutInitContextProfile(glut.GLUT_CORE_PROFILE)
-    
+    glut.glutInitContextProfile(glut.GLUT_COMPATIBILITY_PROFILE)
+
     glut.glutInitWindowSize(800, 600)
     glut.glutCreateWindow(b"FishScanner")
     
