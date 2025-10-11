@@ -498,7 +498,7 @@ def main():
     cleanup_and_exit.drawings_list = drawings_list  # Store for cleanup
     
     fish_queue = Queue() # Queue to maintain order of the fish
-    fish_limit = 10 # Maximum amount of fish to draw
+    fish_limit = 500 # Maximum amount of fish to draw
     scanned_fish_queue = Queue()
     
     # Initialize scenes configuration
