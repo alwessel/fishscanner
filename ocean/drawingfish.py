@@ -15,12 +15,12 @@ void main() {
     // The wave amplitude increases from left (-0.5) to right (0.5) of the fish
     float wave_strength = (v.x + 0.5);  // 0.0 at head, 1.0 at tail
     
-    // Balanced wave effect for natural underwater swimming
-    float wave = sin(v.x * 20.0 + timer * 25.0) * 0.032 * wave_strength;
+    // Enhanced wave effect for more dynamic underwater swimming
+    float wave = sin(v.x * 20.0 + timer * 25.0) * 0.055 * wave_strength;
     
-    // Apply wave primarily to y, with slight x wiggle
+    // Apply wave primarily to y, with more noticeable x wiggle
     v.y += wave;
-    v.x += wave * 0.1;
+    v.x += wave * 0.25;
     
     // Transform to screen space
     gl_Position = gl_ModelViewProjectionMatrix * v;
