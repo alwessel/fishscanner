@@ -2,20 +2,27 @@ from engine.drawing import Drawing
 
 SEAWEED_SHADER_CODE = """
 uniform float timer;
-vec4 sine_wave(vec4 p) {
-    float pi = 3.14159;
-    float A_x = 0.02;
-    float A_y = 0.02;
-    float w = 10.0 * pi;
-    float t = 30.0*pi/180.0;
-    float y = sin( w*timer*p.y + t) * A_y;
-    float x = sin( w*timer*p.y + t) * A_x;
-    return vec4(p.x+x, p.y+y, p.z, p.w);
-}
+
 void main() {
-    gl_Position = gl_ModelViewProjectionMatrix * sine_wave(gl_Vertex);
+    vec4 v = gl_Vertex;
+    
+    // Create swaying motion - top waves more than bottom (anchored at base)
+    // The wave amplitude increases from bottom (-0.5) to top (0.5) of the seaweed
+    float wave_strength = (v.y + 0.5);  // 0.0 at bottom, 1.0 at top
+    
+    // Gentle swaying effect for natural underwater seaweed movement
+    float wave = sin(v.y * 20.0 + timer * 25.0) * 0.032 * wave_strength;
+    
+    // Apply wave primarily to x (horizontal sway), with slight y movement
+    v.x += wave;
+    v.y += wave * 0.1;
+    
+    // Transform to screen space
+    gl_Position = gl_ModelViewProjectionMatrix * v;
+    
+    // Pass through color and texture coordinates
     gl_FrontColor = gl_Color;
-    gl_TexCoord[0].xy = gl_MultiTexCoord0.xy;
+    gl_TexCoord[0] = gl_MultiTexCoord0;
 }
 """
 
