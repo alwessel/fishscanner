@@ -4,6 +4,10 @@ This guide covers common issues you might encounter while setting up and running
 
 ## Installation Issues
 
+### windows 11 on arm 
+
+Currently the opengl code is not working an a Qualcomm Adrena graphic chip. As a workaround you can use wsl to start ubunutu and run it from there.
+
 ### Homebrew Installation Fails
 ```
 Error: Failed to install homebrew
@@ -15,17 +19,17 @@ Error: Failed to install homebrew
 
 ### Python Installation Issues
 ```
-Error: python@3.11 is already installed
+Error: python@3.12 is already installed
 ```
 **Solutions:**
 1. Try unlinking and relinking Python:
 ```bash
-brew unlink python@3.11
-brew link python@3.11
+brew unlink python@3.12
+brew link python@3.12
 ```
 2. Verify Python installation:
 ```bash
-python3.11 --version
+python3.12 --version
 ```
 
 ### XQuartz Issues
@@ -99,7 +103,7 @@ Error: cannot activate virtual environment
 1. Recreate the virtual environment:
 ```bash
 rm -rf venv
-python3.11 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 ```
 2. Install dependencies again:

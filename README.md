@@ -127,22 +127,32 @@ If you prefer manual installation or the setup script fails:
 
 1. Install system dependencies:
 ```bash
-brew install glfw python@3.11 freeglut
+brew install glfw python@3.12 freeglut
 brew install --cask xquartz
 ```
 
 2. Set up Python:
 ```bash
-python3.11 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 python3 -m pip install -r requirements.txt
 ```
 
 3. Configure environment:
 ```bash
+# for mac os
 echo "export DISPLAY=:0" >> ~/.zshrc
+# for ubuntu on wsl
+echo "export PYOPENGL_PLATFORM=glx" >> ~/.bashrc
 # Log out and log back in
 ```
+
+4. Start the main script:
+```bash
+echo Running FishScanner... press ESC to stop.
+python main_ocean.py
+```
+
 
 ## Project Structure
 

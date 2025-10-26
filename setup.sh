@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 # Configuration
 MIN_DISK_SPACE=500000000  # 500MB
 MIN_MEMORY=1000000000     # 1GB
-PYTHON_VERSION="3.11"
+PYTHON_VERSION="3.12"
 BREW_PACKAGES=("glfw" "python@${PYTHON_VERSION}" "freeglut")
 REQUIRED_DIRS=("photos" "ocean/patterns")
 
